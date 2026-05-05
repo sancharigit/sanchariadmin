@@ -140,7 +140,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                         </div>
                         <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-4 border-[#0f172a]" />
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-bold text-white truncate group-hover:text-emerald-400 transition-colors">
                             {adminUser?.name || 'Super Admin'}
@@ -150,7 +150,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                         </p>
                     </div>
 
-                    <button 
+                    <button
                         onClick={handleLogout}
                         className="h-10 w-10 rounded-xl flex items-center justify-center text-white/20 hover:text-rose-500 hover:bg-rose-500/10 transition-all duration-300"
                         title="Sign Out"
@@ -175,32 +175,32 @@ const renderMenuItem = (item, level = 0) => {
                 to={item.path}
                 className={`
                     group flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 relative overflow-hidden
-                    ${active 
-                        ? 'bg-emerald-500/10 border border-emerald-500/20 shadow-lg shadow-emerald-500/5' 
+                    ${active
+                        ? 'bg-emerald-500/10 border border-emerald-500/20 shadow-lg shadow-emerald-500/5'
                         : 'hover:bg-white/5 border border-transparent'
                     }
                 `}
             >
                 {/* Active Indicator Glow */}
                 {active && (
-                    <motion.div 
+                    <motion.div
                         layoutId="active-pill"
                         className="absolute left-0 top-1/4 bottom-1/4 w-1 grad-emerald rounded-r-full"
                     />
                 )}
 
-                <Icon 
-                    size={20} 
+                <Icon
+                    size={20}
                     className={`transition-colors duration-300 ${active ? 'text-emerald-500' : 'text-white/40 group-hover:text-white'}`}
                     strokeWidth={active ? 2.5 : 2}
                 />
-                
+
                 <span className={`text-sm font-bold tracking-tight transition-colors duration-300 ${active ? 'text-white' : 'text-white/40 group-hover:text-white'}`}>
                     {item.title}
                 </span>
 
                 {active && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, scale: 0 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className="ml-auto"
