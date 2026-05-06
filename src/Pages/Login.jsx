@@ -49,7 +49,8 @@ const Login = () => {
             }
             const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
                 email: trimmedEmail,
-                password: trimmedPassword
+                password: trimmedPassword,
+                role: 'admin'
             });
 
             const data = res.data; // Axios automatically parses JSON
