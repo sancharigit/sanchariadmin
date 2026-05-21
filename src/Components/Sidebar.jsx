@@ -6,7 +6,7 @@ import {
     CalendarCheck, Settings, LogOut, ChevronDown, ChevronRight,
     UserCog, Building2, UsersRound, FileText, CreditCard, Key, ClipboardList,
     ShieldCheck, Bell, Activity, UserPlus, Shield, Mail, Calendar, MapPin, List, Car, AlertCircle, User,
-    X, Search, Filter, MoreVertical, Wallet
+    X, Search, Filter, MoreVertical, Wallet, Tag, MessageSquare, Sparkles
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
@@ -68,6 +68,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             subMenus: [
                 { title: 'Live Rides', path: '/rides/live', icon: Activity },
                 { title: 'Pool Management', path: '/rides/pools', icon: List },
+                { title: 'Promoted Routes', path: '/rides/promoted', icon: Tag },
+                { title: 'Recommended Offers', path: '/rides/offers', icon: Sparkles },
                 { title: 'Ride History', path: '/rides/history', icon: CalendarCheck },
                 // { title: 'Disputes', path: '/rides/disputes', icon: AlertCircle },
             ]
