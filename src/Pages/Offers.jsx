@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     Search, Plus, Tag, Trash2, AlertCircle, 
-    Sparkles, Percent, Loader2, X, FileText
+    Sparkles, Percent, Loader2, X, FileText, Edit2
 } from 'lucide-react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
@@ -14,11 +14,13 @@ const Offers = () => {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        badge: 'CITY COMMUTE',
-        actionText: 'LEARN MORE',
-        targetScreen: ''
+        badge: 'CITY POOLING',
+        actionText: 'Explore',
+        targetScreen: 'PassengerHome',
+        pillText: 'Up to ₹60 off'
     });
     const [submitting, setSubmitting] = useState(false);
+    const [editingId, setEditingId] = useState(null);
 
     const fetchOffers = useCallback(async () => {
         try {
@@ -51,7 +53,12 @@ const Offers = () => {
             setSubmitting(true);
             const token = localStorage.getItem('adminToken');
             
-            const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/admin/offers`, formData, {
+            const url = editingId 
+                ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/offers/${editingId}`
+                : `${import.meta.env.VITE_API_BASE_URL}/api/admin/offers`;
+            const method = editingId ? 'put' : 'post';
+
+            const res = await axios[method](url, formData, {
                 headers: { 
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -59,21 +66,41 @@ const Offers = () => {
             });
 
             if (res.data.success) {
-                setOffers([res.data.data, ...offers]);
+                if (editingId) {
+                    setOffers(offers.map(o => o._id === editingId ? res.data.data : o));
+                } else {
+                    setOffers([res.data.data, ...offers]);
+                }
+                
                 setIsModalOpen(false);
+                setEditingId(null);
                 setFormData({
                     title: '',
                     description: '',
-                    badge: 'CITY COMMUTE',
-                    actionText: 'LEARN MORE',
-                    targetScreen: ''
+                    badge: 'CITY POOLING',
+                    actionText: 'Explore',
+                    targetScreen: 'PassengerHome',
+                    pillText: 'Up to ₹60 off'
                 });
             }
         } catch (err) {
-            alert(err.response?.data?.message || 'Failed to add offer');
+            alert(err.response?.data?.message || 'Failed to save offer');
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleEditClick = (offer) => {
+        setEditingId(offer._id);
+        setFormData({
+            title: offer.title || '',
+            description: offer.description || '',
+            badge: offer.badge || 'CITY POOLING',
+            actionText: offer.actionText || 'Explore',
+            targetScreen: offer.targetScreen || 'PassengerHome',
+            pillText: offer.pillText || ''
+        });
+        setIsModalOpen(true);
     };
 
     const handleDelete = async (id) => {
@@ -97,7 +124,18 @@ const Offers = () => {
                     <p className="text-white/60 text-sm">Manage dynamic promotional and commuted offers displayed in the payment screen of the mobile app.</p>
                 </div>
                 <button
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => {
+                        setEditingId(null);
+                        setFormData({
+                            title: '',
+                            description: '',
+                            badge: 'CITY POOLING',
+                            actionText: 'Explore',
+                            targetScreen: 'PassengerHome',
+                            pillText: 'Up to ₹60 off'
+                        });
+                        setIsModalOpen(true);
+                    }}
                     className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
                 >
                     <Plus size={18} />
@@ -159,12 +197,21 @@ const Offers = () => {
                                     </td>
                                     <td className="px-8 py-5">
                                         <div className="text-xs font-bold text-white/70 max-w-sm">{offer.description}</div>
+                                        {offer.pillText && (
+                                            <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mt-1">Pill: {offer.pillText}</div>
+                                        )}
                                     </td>
                                     <td className="px-8 py-5">
                                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                                            offer.badge === 'CITY COMMUTE' 
-                                            ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
-                                            : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                            offer.badge === 'CITY POOLING' 
+                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                            : offer.badge === 'CITY INSTANT'
+                                            ? 'bg-sky-500/10 border-sky-500/20 text-sky-400'
+                                            : offer.badge === 'OUTSTATION POOLING'
+                                            ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                                            : offer.badge === 'OUTSTATION RENTAL'
+                                            ? 'bg-purple-500/10 border-purple-500/20 text-purple-400'
+                                            : 'bg-gray-500/10 border-gray-500/20 text-gray-400'
                                         }`}>
                                             {offer.badge}
                                         </span>
@@ -175,7 +222,13 @@ const Offers = () => {
                                             <div className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Screen: {offer.targetScreen}</div>
                                         )}
                                     </td>
-                                    <td className="px-8 py-5 text-right">
+                                    <td className="px-8 py-5 text-right space-x-2 whitespace-nowrap">
+                                        <button 
+                                            onClick={() => handleEditClick(offer)}
+                                            className="p-2 text-white/20 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-xl transition-all"
+                                        >
+                                            <Edit2 size={18} />
+                                        </button>
                                         <button 
                                             onClick={() => handleDelete(offer._id)}
                                             className="p-2 text-white/20 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
@@ -208,7 +261,7 @@ const Offers = () => {
                         </button>
 
                         <div className="mb-8">
-                            <h2 className="text-2xl font-black text-white">Add Recommended Offer</h2>
+                            <h2 className="text-2xl font-black text-white">{editingId ? 'Edit' : 'Add'} Recommended Offer</h2>
                             <p className="text-white/40 text-sm font-bold uppercase tracking-widest mt-1">Configure offer for payments screen</p>
                         </div>
 
@@ -249,12 +302,41 @@ const Offers = () => {
                                     <select
                                         className="w-full bg-white/5 border border-white/10 rounded-[20px] px-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold appearance-none cursor-pointer"
                                         value={formData.badge}
-                                        onChange={(e) => setFormData({...formData, badge: e.target.value})}
+                                        onChange={(e) => {
+                                            const badge = e.target.value;
+                                            let actionText = 'Explore';
+                                            let targetScreen = 'PassengerHome';
+                                            let pillText = 'Up to ₹60 off';
+                                            if (badge === 'CITY POOLING') {
+                                                actionText = 'Explore';
+                                                targetScreen = 'PassengerHome';
+                                                pillText = 'Up to ₹60 off';
+                                            } else if (badge === 'CITY INSTANT') {
+                                                actionText = 'Book now';
+                                                targetScreen = 'PassengerHome';
+                                                pillText = '15% cashback';
+                                            } else if (badge === 'OUTSTATION POOLING') {
+                                                actionText = 'Check routes';
+                                                targetScreen = 'Outstation';
+                                                pillText = 'Save up to ₹120';
+                                            } else if (badge === 'OUTSTATION RENTAL') {
+                                                actionText = 'View plans';
+                                                targetScreen = 'Outstation';
+                                                pillText = 'Flat ₹200 off';
+                                            }
+                                            setFormData({
+                                                ...formData,
+                                                badge,
+                                                actionText,
+                                                targetScreen,
+                                                pillText
+                                            });
+                                        }}
                                     >
-                                        <option value="CITY COMMUTE">CITY COMMUTE</option>
-                                        <option value="INTER-CITY">INTER-CITY</option>
-                                        <option value="MEGA OFFER">MEGA OFFER</option>
-                                        <option value="WALLET BONUS">WALLET BONUS</option>
+                                        <option value="CITY POOLING">CITY POOLING</option>
+                                        <option value="CITY INSTANT">CITY INSTANT</option>
+                                        <option value="OUTSTATION POOLING">OUTSTATION POOLING</option>
+                                        <option value="OUTSTATION RENTAL">OUTSTATION RENTAL</option>
                                     </select>
                                 </div>
 
@@ -271,17 +353,34 @@ const Offers = () => {
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Target Screen (Optional)</label>
-                                <div className="relative group">
-                                    <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. Outstation (opens Outstation screen)"
-                                        className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
-                                        value={formData.targetScreen}
-                                        onChange={(e) => setFormData({...formData, targetScreen: e.target.value})}
-                                    />
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Pill Text (Offer Value)</label>
+                                    <div className="relative group">
+                                        <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                                        <input
+                                            required
+                                            type="text"
+                                            placeholder="e.g. Up to ₹60 off"
+                                            className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
+                                            value={formData.pillText}
+                                            onChange={(e) => setFormData({...formData, pillText: e.target.value})}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Target Screen</label>
+                                    <div className="relative group">
+                                        <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. PassengerHome"
+                                            className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
+                                            value={formData.targetScreen}
+                                            onChange={(e) => setFormData({...formData, targetScreen: e.target.value})}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -296,7 +395,7 @@ const Offers = () => {
                                         <span>Saving...</span>
                                     </>
                                 ) : (
-                                    <span>Save Offer</span>
+                                    <span>{editingId ? 'Save Changes' : 'Save Offer'}</span>
                                 )}
                             </button>
                         </form>

@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     Search, Plus, MapPin, Tag, Trash2, AlertCircle, 
-    Image as ImageIcon, Loader2, X
+    Image as ImageIcon, Loader2, X, Edit2
 } from 'lucide-react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 
 const PromotedRoutes = () => {
+    const [activeTab, setActiveTab] = useState('trending_route');
     const [routes, setRoutes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -14,13 +15,16 @@ const PromotedRoutes = () => {
     const [formData, setFormData] = useState({
         name: '',
         startingPrice: '',
-        category: 'weekend_escape',
         pickup: '',
-        destination: ''
+        destination: '',
+        subtitle: '',
+        tag: '',
+        discount: ''
     });
     const [imageFile, setImageFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [editingId, setEditingId] = useState(null);
 
     const fetchRoutes = useCallback(async () => {
         try {
@@ -63,15 +67,29 @@ const PromotedRoutes = () => {
             
             const data = new FormData();
             data.append('name', formData.name);
-            data.append('startingPrice', formData.startingPrice);
-            data.append('category', formData.category);
-            data.append('pickup', formData.pickup);
-            data.append('destination', formData.destination);
-            if (imageFile) {
-                data.append('image', imageFile);
+            data.append('category', activeTab);
+            
+            if (activeTab === 'trending_route') {
+                data.append('startingPrice', formData.startingPrice);
+                data.append('pickup', formData.pickup);
+                data.append('destination', formData.destination);
+                if (formData.subtitle) data.append('subtitle', formData.subtitle);
+                if (formData.tag) data.append('tag', formData.tag);
+                if (formData.discount) data.append('discount', formData.discount);
             }
 
-            const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/admin/promoted-routes`, data, {
+            if (imageFile) {
+                data.append('image', imageFile);
+            } else if (editingId && previewUrl && !previewUrl.startsWith('blob:')) {
+                data.append('image', previewUrl);
+            }
+
+            const url = editingId 
+                ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/promoted-routes/${editingId}`
+                : `${import.meta.env.VITE_API_BASE_URL}/api/admin/promoted-routes`;
+            const method = editingId ? 'put' : 'post';
+
+            const res = await axios[method](url, data, {
                 headers: { 
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
@@ -79,21 +97,47 @@ const PromotedRoutes = () => {
             });
 
             if (res.data.success) {
-                setRoutes([res.data.data, ...routes]);
+                if (editingId) {
+                    setRoutes(routes.map(r => r._id === editingId ? res.data.data : r));
+                } else {
+                    setRoutes([res.data.data, ...routes]);
+                }
+                
                 setIsModalOpen(false);
-                setFormData({ name: '', startingPrice: '', category: 'weekend_escape', pickup: '', destination: '' });
+                setEditingId(null);
+                setFormData({ 
+                    name: '', startingPrice: '',
+                    pickup: '', destination: '', subtitle: '', tag: '', 
+                    discount: ''
+                });
                 setImageFile(null);
                 setPreviewUrl(null);
             }
         } catch (err) {
-            alert(err.response?.data?.message || 'Failed to add route');
+            alert(err.response?.data?.message || 'Failed to save route');
         } finally {
             setSubmitting(false);
         }
     };
 
+    const handleEditClick = (route) => {
+        setEditingId(route._id);
+        setFormData({
+            name: route.name || '',
+            startingPrice: route.startingPrice || '',
+            pickup: route.pickup || '',
+            destination: route.destination || '',
+            subtitle: route.subtitle || '',
+            tag: route.tag || '',
+            discount: route.discount || ''
+        });
+        setPreviewUrl(route.image || null);
+        setImageFile(null);
+        setIsModalOpen(true);
+    };
+
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this promoted route?')) return;
+        if (!window.confirm('Are you sure you want to delete this route?')) return;
         try {
             const token = localStorage.getItem('adminToken');
             await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/api/admin/promoted-routes/${id}`, {
@@ -105,19 +149,53 @@ const PromotedRoutes = () => {
         }
     };
 
+    const filteredRoutes = routes.filter(route => route.category === activeTab);
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-2xl font-bold text-white">Promoted Routes</h1>
-                    <p className="text-white/60 text-sm">Manage Weekend Escapes and trending destinations shown in the app.</p>
+                    <h1 className="text-2xl font-bold text-white">Promoted Content</h1>
+                    <p className="text-white/60 text-sm">Manage trending destinations and banners.</p>
+                </div>
+                <div className="flex gap-2 p-1 bg-white/5 border border-white/10 rounded-2xl">
+                    <button
+                        onClick={() => setActiveTab('trending_route')}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                            activeTab === 'trending_route' 
+                                ? 'bg-emerald-500 text-white shadow-lg' 
+                                : 'text-white/40 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        Trending Routes
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('trending_now')}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                            activeTab === 'trending_now' 
+                                ? 'bg-emerald-500 text-white shadow-lg' 
+                                : 'text-white/40 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        Trending Now (Images)
+                    </button>
                 </div>
                 <button
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => {
+                        setEditingId(null);
+                        setFormData({ 
+                            name: '', startingPrice: '',
+                            pickup: '', destination: '', subtitle: '', tag: '', 
+                            discount: ''
+                        });
+                        setPreviewUrl(null);
+                        setImageFile(null);
+                        setIsModalOpen(true);
+                    }}
                     className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
                 >
                     <Plus size={18} />
-                    <span>Add New Route</span>
+                    <span>Add New {activeTab === 'trending_now' ? 'Image' : 'Route'}</span>
                 </button>
             </div>
 
@@ -134,37 +212,40 @@ const PromotedRoutes = () => {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b border-white/5 bg-white/5">
-                                <th className="px-8 py-5 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Route Info</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Route Path</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Category</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Starting Price</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">{activeTab === 'trending_now' ? 'Image Name' : 'Route Info'}</th>
+                                {activeTab === 'trending_route' && (
+                                    <>
+                                        <th className="px-8 py-5 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Route Path</th>
+                                        <th className="px-8 py-5 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Starting Price</th>
+                                    </>
+                                )}
                                 <th className="px-8 py-5 text-[10px] font-black text-white/40 uppercase tracking-[0.2em] text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="5" className="px-8 py-20 text-center">
+                                    <td colSpan={activeTab === 'trending_now' ? 2 : 4} className="px-8 py-20 text-center">
                                         <div className="flex flex-col items-center gap-4 text-white/40">
                                             <Loader2 size={40} className="animate-spin text-emerald-500" />
-                                            <p className="font-bold uppercase tracking-widest text-xs">Loading Promoted Routes...</p>
+                                            <p className="font-bold uppercase tracking-widest text-xs">Loading Content...</p>
                                         </div>
                                     </td>
                                 </tr>
-                            ) : routes.length === 0 ? (
+                            ) : filteredRoutes.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-8 py-20 text-center">
+                                    <td colSpan={activeTab === 'trending_now' ? 2 : 4} className="px-8 py-20 text-center">
                                         <div className="flex flex-col items-center gap-4 text-white/20">
-                                            <MapPin size={40} />
-                                            <p className="font-bold uppercase tracking-widest text-xs">No Promoted Routes Found</p>
+                                            {activeTab === 'trending_now' ? <ImageIcon size={40} /> : <MapPin size={40} />}
+                                            <p className="font-bold uppercase tracking-widest text-xs">No Content Found</p>
                                         </div>
                                     </td>
                                 </tr>
-                            ) : routes.map(route => (
+                            ) : filteredRoutes.map(route => (
                                 <tr key={route._id} className="hover:bg-white/[0.02] transition-colors group">
                                     <td className="px-8 py-5">
                                         <div className="flex items-center gap-4">
-                                            <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/20 overflow-hidden border border-white/10 group-hover:border-emerald-500/50 transition-colors">
+                                            <div className={`${activeTab === 'trending_now' ? 'h-24 w-24 rounded-lg' : 'h-12 w-12 rounded-2xl'} bg-white/5 flex items-center justify-center text-white/20 overflow-hidden border border-white/10 group-hover:border-emerald-500/50 transition-colors`}>
                                                 {route.image ? (
                                                     <img src={route.image} alt={route.name} className="w-full h-full object-cover" />
                                                 ) : (
@@ -173,32 +254,38 @@ const PromotedRoutes = () => {
                                             </div>
                                             <div>
                                                 <div className="text-sm font-black text-white group-hover:text-emerald-400 transition-colors">{route.name}</div>
-                                                <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">ID: {route._id.slice(-6).toUpperCase()}</div>
+                                                {activeTab === 'trending_route' && (
+                                                    <>
+                                                        <div className="text-[10px] font-bold text-white/40 mt-1">{route.subtitle}</div>
+                                                        {route.tag && <div className="text-[10px] font-bold text-emerald-500 mt-1">{route.tag}</div>}
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-8 py-5">
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex flex-col">
-                                                <div className="text-xs font-bold text-white/60">From: {route.pickup}</div>
-                                                <div className="text-xs font-bold text-white/60">To: {route.destination}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-5">
-                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                                            route.category === 'weekend_escape' 
-                                            ? 'bg-amber-500/10 border-amber-500/20 text-amber-500'
-                                            : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
-                                        }`}>
-                                            {route.category.replace('_', ' ')}
-                                        </span>
-                                    </td>
-                                    <td className="px-8 py-5">
-                                        <div className="text-sm font-black text-white">₹{route.startingPrice}</div>
-                                        <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">Onwards</div>
-                                    </td>
-                                    <td className="px-8 py-5 text-right">
+                                    {activeTab === 'trending_route' && (
+                                        <>
+                                            <td className="px-8 py-5">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex flex-col">
+                                                        <div className="text-xs font-bold text-white/60">From: {route.pickup}</div>
+                                                        <div className="text-xs font-bold text-white/60">To: {route.destination}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <div className="text-sm font-black text-white">₹{route.startingPrice}</div>
+                                                {route.discount && <div className="text-[10px] font-bold text-emerald-400 mt-1">{route.discount}</div>}
+                                            </td>
+                                        </>
+                                    )}
+                                    <td className="px-8 py-5 text-right space-x-2 whitespace-nowrap">
+                                        <button 
+                                            onClick={() => handleEditClick(route)}
+                                            className="p-2 text-white/20 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-xl transition-all"
+                                        >
+                                            <Edit2 size={18} />
+                                        </button>
                                         <button 
                                             onClick={() => handleDelete(route._id)}
                                             className="p-2 text-white/20 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
@@ -215,11 +302,11 @@ const PromotedRoutes = () => {
 
             {/* Add Route Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#0f172a]/80 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#0f172a]/80 backdrop-blur-sm overflow-y-auto">
                     <motion.div 
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        className="glass-card w-full max-w-lg rounded-[40px] p-8 border border-white/10 shadow-2xl relative"
+                        className="glass-card w-full max-w-2xl rounded-[40px] p-8 border border-white/10 shadow-2xl relative my-8"
                     >
                         <button 
                             onClick={() => {
@@ -233,88 +320,123 @@ const PromotedRoutes = () => {
                         </button>
 
                         <div className="mb-8">
-                            <h2 className="text-2xl font-black text-white">Add Promoted Route</h2>
-                            <p className="text-white/40 text-sm font-bold uppercase tracking-widest mt-1">Configure weekend escape destination</p>
+                            <h2 className="text-2xl font-black text-white">{editingId ? 'Edit' : 'Add'} {activeTab === 'trending_now' ? 'Trending Now Image' : 'Trending Route'}</h2>
+                            <p className="text-white/40 text-sm font-bold uppercase tracking-widest mt-1">Configure content</p>
                         </div>
 
                         <form onSubmit={handleAddRoute} className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Destination Name</label>
-                                <div className="relative group">
-                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
-                                    <input
-                                        required
-                                        type="text"
-                                        placeholder="e.g. Srisailam Dam"
-                                        className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className={`grid ${activeTab === 'trending_route' ? 'grid-cols-2' : 'grid-cols-1'} gap-6`}>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Pickup Point</label>
+                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">{activeTab === 'trending_now' ? 'Name (Internal)' : 'Name (Internal)'}</label>
                                     <div className="relative group">
                                         <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
                                         <input
                                             required
                                             type="text"
-                                            placeholder="e.g. Hyderabad"
+                                            placeholder={activeTab === 'trending_now' ? "e.g. Summer Promo Image" : "e.g. Hyderabad to Warangal"}
                                             className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
-                                            value={formData.pickup}
-                                            onChange={(e) => setFormData({...formData, pickup: e.target.value})}
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({...formData, name: e.target.value})}
                                         />
                                     </div>
                                 </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Destination Point</label>
-                                    <div className="relative group">
-                                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
-                                        <input
-                                            required
-                                            type="text"
-                                            placeholder="e.g. Srisailam"
-                                            className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
-                                            value={formData.destination}
-                                            onChange={(e) => setFormData({...formData, destination: e.target.value})}
-                                        />
+                                
+                                {activeTab === 'trending_route' && (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Subtitle</label>
+                                        <div className="relative group">
+                                            <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. Heritage & Food Trail"
+                                                className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
+                                                value={formData.subtitle}
+                                                onChange={(e) => setFormData({...formData, subtitle: e.target.value})}
+                                            />
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Starting Price</label>
-                                    <div className="relative group">
-                                        <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
-                                        <input
-                                            required
-                                            type="number"
-                                            placeholder="349"
-                                            className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
-                                            value={formData.startingPrice}
-                                            onChange={(e) => setFormData({...formData, startingPrice: e.target.value})}
-                                        />
+                            {activeTab === 'trending_route' && (
+                                <>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Pickup Point</label>
+                                            <div className="relative group">
+                                                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                                                <input
+                                                    required
+                                                    type="text"
+                                                    placeholder="e.g. Hyderabad"
+                                                    className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
+                                                    value={formData.pickup}
+                                                    onChange={(e) => setFormData({...formData, pickup: e.target.value})}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Destination Point</label>
+                                            <div className="relative group">
+                                                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                                                <input
+                                                    required
+                                                    type="text"
+                                                    placeholder="e.g. Warangal"
+                                                    className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
+                                                    value={formData.destination}
+                                                    onChange={(e) => setFormData({...formData, destination: e.target.value})}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                    <div className="grid grid-cols-3 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Starting Price</label>
+                                            <div className="relative group">
+                                                <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                                                <input
+                                                    required
+                                                    type="number"
+                                                    placeholder="299"
+                                                    className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
+                                                    value={formData.startingPrice}
+                                                    onChange={(e) => setFormData({...formData, startingPrice: e.target.value})}
+                                                />
+                                            </div>
+                                        </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Category</label>
-                                    <select
-                                        className="w-full bg-white/5 border border-white/10 rounded-[20px] px-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold appearance-none cursor-pointer"
-                                        value={formData.category}
-                                        onChange={(e) => setFormData({...formData, category: e.target.value})}
-                                    >
-                                        <option value="weekend_escape">Weekend Escape</option>
-                                        <option value="trending">Trending Route</option>
-                                        <option value="popular">Popular Spot</option>
-                                    </select>
-                                </div>
-                            </div>
-
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Discount Text</label>
+                                            <div className="relative group">
+                                                <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                                                <input
+                                                    type="text"
+                                                    placeholder="e.g. Save up to 20%"
+                                                    className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
+                                                    value={formData.discount}
+                                                    onChange={(e) => setFormData({...formData, discount: e.target.value})}
+                                                />
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Badge Tag</label>
+                                            <div className="relative group">
+                                                <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                                                <input
+                                                    type="text"
+                                                    placeholder="e.g. 🔥 Weekend Favorite"
+                                                    className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
+                                                    value={formData.tag}
+                                                    onChange={(e) => setFormData({...formData, tag: e.target.value})}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Route Image</label>
                                 <div className="flex flex-col gap-4">
@@ -360,10 +482,10 @@ const PromotedRoutes = () => {
                                 {submitting ? (
                                     <>
                                         <Loader2 className="animate-spin" size={24} />
-                                        <span>Adding Route...</span>
+                                        <span>Saving...</span>
                                     </>
                                 ) : (
-                                    <span>Save Promoted Route</span>
+                                    <span>{editingId ? 'Save Changes' : 'Save Content'}</span>
                                 )}
                             </button>
                         </form>
