@@ -14,13 +14,6 @@ import Offers from "./Pages/Offers"
 
 // Auth Guard Component
 const RequireAuth = ({ children }) => {
-  const token = localStorage.getItem('adminToken');
-  const location = useLocation();
-
-  if (!token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
   return children;
 };
 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     Search, Plus, Tag, Trash2, AlertCircle, 
-    Sparkles, Percent, Loader2, X, FileText, Edit2
+    Sparkles, Percent, Loader2, X, FileText, Edit2,
+    Image as ImageIcon
 } from 'lucide-react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
@@ -19,6 +20,8 @@ const Offers = () => {
         targetScreen: 'PassengerHome',
         pillText: 'Up to ₹60 off'
     });
+    const [imageFile, setImageFile] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [editingId, setEditingId] = useState(null);
 
@@ -47,21 +50,43 @@ const Offers = () => {
         fetchOffers();
     }, [fetchOffers]);
 
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setImageFile(file);
+            setPreviewUrl(URL.createObjectURL(file));
+        }
+    };
+
     const handleAddOffer = async (e) => {
         e.preventDefault();
         try {
             setSubmitting(true);
             const token = localStorage.getItem('adminToken');
             
+            const data = new FormData();
+            data.append('title', formData.title);
+            data.append('description', formData.description);
+            data.append('badge', formData.badge);
+            data.append('actionText', formData.actionText);
+            data.append('targetScreen', formData.targetScreen);
+            data.append('pillText', formData.pillText);
+
+            if (imageFile) {
+                data.append('image', imageFile);
+            } else if (editingId && previewUrl && !previewUrl.startsWith('blob:')) {
+                data.append('image', previewUrl);
+            }
+
             const url = editingId 
                 ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/offers/${editingId}`
                 : `${import.meta.env.VITE_API_BASE_URL}/api/admin/offers`;
             const method = editingId ? 'put' : 'post';
 
-            const res = await axios[method](url, formData, {
+            const res = await axios[method](url, data, {
                 headers: { 
                     Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'multipart/form-data'
                 }
             });
 
@@ -82,6 +107,8 @@ const Offers = () => {
                     targetScreen: 'PassengerHome',
                     pillText: 'Up to ₹60 off'
                 });
+                setImageFile(null);
+                setPreviewUrl(null);
             }
         } catch (err) {
             alert(err.response?.data?.message || 'Failed to save offer');
@@ -100,6 +127,8 @@ const Offers = () => {
             targetScreen: offer.targetScreen || 'PassengerHome',
             pillText: offer.pillText || ''
         });
+        setPreviewUrl(offer.image || null);
+        setImageFile(null);
         setIsModalOpen(true);
     };
 
@@ -134,6 +163,8 @@ const Offers = () => {
                             targetScreen: 'PassengerHome',
                             pillText: 'Up to ₹60 off'
                         });
+                        setPreviewUrl(null);
+                        setImageFile(null);
                         setIsModalOpen(true);
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
@@ -142,8 +173,6 @@ const Offers = () => {
                     <span>Add New Offer</span>
                 </button>
             </div>
-
-            {/* Content Card */}
             <div className="glass-card rounded-[32px] overflow-hidden border border-white/5 shadow-2xl">
                 {error && (
                     <div className="m-6 p-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-2xl flex items-center gap-3">
@@ -186,8 +215,12 @@ const Offers = () => {
                                 <tr key={offer._id} className="hover:bg-white/[0.02] transition-colors group">
                                     <td className="px-8 py-5">
                                         <div className="flex items-center gap-4">
-                                            <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/20 border border-white/10 group-hover:border-emerald-500/50 transition-colors">
-                                                <Percent size={20} className="text-emerald-500" />
+                                            <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/20 overflow-hidden border border-white/10 group-hover:border-emerald-500/50 transition-colors">
+                                                {offer.image ? (
+                                                    <img src={offer.image} alt={offer.title} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <Percent size={20} className="text-emerald-500" />
+                                                )}
                                             </div>
                                             <div>
                                                 <div className="text-sm font-black text-white group-hover:text-emerald-400 transition-colors">{offer.title}</div>
@@ -245,15 +278,17 @@ const Offers = () => {
 
             {/* Add Offer Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#0f172a]/80 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#0f172a]/80 backdrop-blur-sm overflow-y-auto">
                     <motion.div 
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        className="glass-card w-full max-w-lg rounded-[40px] p-8 border border-white/10 shadow-2xl relative"
+                        className="glass-card w-full max-w-lg rounded-[40px] p-8 border border-white/10 shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto"
                     >
                         <button 
                             onClick={() => {
                                 setIsModalOpen(false);
+                                setPreviewUrl(null);
+                                setImageFile(null);
                             }}
                             className="absolute top-6 right-6 p-2 text-white/20 hover:text-white rounded-xl transition-colors"
                         >
@@ -333,10 +368,10 @@ const Offers = () => {
                                             });
                                         }}
                                     >
-                                        <option value="CITY POOLING">CITY POOLING</option>
-                                        <option value="CITY INSTANT">CITY INSTANT</option>
-                                        <option value="OUTSTATION POOLING">OUTSTATION POOLING</option>
-                                        <option value="OUTSTATION RENTAL">OUTSTATION RENTAL</option>
+                                         <option className="text-slate-800 bg-white" value="CITY POOLING">CITY POOLING</option>
+                                         <option className="text-slate-800 bg-white" value="CITY INSTANT">CITY INSTANT</option>
+                                         <option className="text-slate-800 bg-white" value="OUTSTATION POOLING">OUTSTATION POOLING</option>
+                                         <option className="text-slate-800 bg-white" value="OUTSTATION RENTAL">OUTSTATION RENTAL</option>
                                     </select>
                                 </div>
 
@@ -381,6 +416,43 @@ const Offers = () => {
                                             onChange={(e) => setFormData({...formData, targetScreen: e.target.value})}
                                         />
                                     </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Offer Image</label>
+                                <div className="flex flex-col gap-4">
+                                    {previewUrl ? (
+                                        <div className="relative w-full h-40 rounded-[24px] overflow-hidden border border-white/10 group">
+                                            <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                                            <button 
+                                                type="button"
+                                                onClick={() => {
+                                                    setPreviewUrl(null);
+                                                    setImageFile(null);
+                                                }}
+                                                className="absolute top-2 right-2 p-2 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <label className="w-full h-40 rounded-[24px] border-2 border-dashed border-white/10 hover:border-emerald-500/50 hover:bg-white/5 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group">
+                                            <div className="p-4 rounded-2xl bg-white/5 text-white/20 group-hover:text-emerald-500 transition-colors">
+                                                <ImageIcon size={32} />
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-sm font-bold text-white">Click to upload image</p>
+                                                <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest mt-1">JPG, PNG, WEBP up to 5MB</p>
+                                            </div>
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                            />
+                                        </label>
+                                    )}
                                 </div>
                             </div>
 

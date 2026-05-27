@@ -81,31 +81,31 @@ const PoolManagement = () => {
                     <input
                         type="text"
                         placeholder="Search by city or host..."
-                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800 placeholder:text-slate-400"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
                 <div className="flex gap-4">
                     <select
-                        className="bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value)}
                     >
-                        <option value="all">All Types</option>
-                        <option value="local">City Pool</option>
-                        <option value="outstation">Outstation</option>
+                        <option value="all" className="text-slate-800 bg-white">All Types</option>
+                        <option value="local" className="text-slate-800 bg-white">City Pool</option>
+                        <option value="outstation" className="text-slate-800 bg-white">Outstation</option>
                     </select>
                     <select
-                        className="bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
                     >
-                        <option value="all">All Status</option>
-                        <option value="scheduled">Scheduled</option>
-                        <option value="ongoing">Ongoing</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
+                        <option value="all" className="text-slate-800 bg-white">All Status</option>
+                        <option value="scheduled" className="text-slate-800 bg-white">Scheduled</option>
+                        <option value="ongoing" className="text-slate-800 bg-white">Ongoing</option>
+                        <option value="completed" className="text-slate-800 bg-white">Completed</option>
+                        <option value="cancelled" className="text-slate-800 bg-white">Cancelled</option>
                     </select>
                 </div>
             </div>

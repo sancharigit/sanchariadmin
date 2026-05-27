@@ -426,20 +426,20 @@ const DriverManagement = ({ view = 'directory' }) => {
                     <input
                         type="text"
                         placeholder="Search drivers..."
-                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-slate-800 placeholder:text-slate-400"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
                 <div className="flex gap-3">
                     <select
-                        className="bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        className="bg-white text-slate-800 border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
                     >
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="blocked">Blocked</option>
+                        <option value="all" className="text-slate-800 bg-white">All Status</option>
+                        <option value="active" className="text-slate-800 bg-white">Active</option>
+                        <option value="blocked" className="text-slate-800 bg-white">Blocked</option>
                     </select>
                     {/* <button
                         onClick={() => setIsAddDriverModalOpen(true)}
@@ -455,6 +455,7 @@ const DriverManagement = ({ view = 'directory' }) => {
                 <table className="w-full">
                     <thead className="bg-slate-50 border-b border-slate-200">
                         <tr>
+                            <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase w-16">S.No.</th>
                             <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Driver</th>
                             <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Contact</th>
                             <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Vehicle</th>
@@ -464,12 +465,15 @@ const DriverManagement = ({ view = 'directory' }) => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {filteredDrivers.map((driver) => (
+                        {filteredDrivers.map((driver, index) => (
                             <tr
                                 key={driver.id}
                                 onClick={() => setSelectedDriver(driver)}
                                 className="hover:bg-slate-50 transition-colors cursor-pointer group"
                             >
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">
+                                    {index + 1}
+                                </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center gap-3">
                                         <div className="h-10 w-10 rounded-full border border-slate-100 overflow-hidden">
@@ -699,19 +703,19 @@ const DriverManagement = ({ view = 'directory' }) => {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
-                            <input name="name" required type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="John Doe" />
+                            <input name="name" required type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800 placeholder:text-slate-400" placeholder="John Doe" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
-                            <input name="phone" required type="tel" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+1 (555) 000-0000" />
+                            <input name="phone" required type="tel" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800 placeholder:text-slate-400" placeholder="+1 (555) 000-0000" />
                         </div>
                         <div className="col-span-2">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
-                            <input name="email" required type="email" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="john@example.com" />
+                            <input name="email" required type="email" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800 placeholder:text-slate-400" placeholder="john@example.com" />
                         </div>
                         <div className="col-span-2">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Vehicle Details</label>
-                            <input name="vehicle" required type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Toyota Camry - ABC 1234" />
+                            <input name="vehicle" required type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800 placeholder:text-slate-400" placeholder="Toyota Camry - ABC 1234" />
                         </div>
                     </div>
                     <div className="flex justify-end gap-3 pt-4">
