@@ -58,6 +58,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             subMenus: [
                 { title: 'Passengers', path: '/passengers', icon: User },
                 { title: 'Drivers', path: '/drivers', icon: UserCog },
+                { title: 'Driver Offers', path: '/drivers/offers', icon: Sparkles },
             ]
         },
         {

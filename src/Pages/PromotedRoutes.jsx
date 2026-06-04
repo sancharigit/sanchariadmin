@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Search, Plus, MapPin, Tag, Trash2, AlertCircle, 
+    Search, Plus, MapPin, Tag, Trash2, AlertCircle,
     Image as ImageIcon, Loader2, X, Edit2
 } from 'lucide-react';
 import axios from 'axios';
@@ -64,11 +64,11 @@ const PromotedRoutes = () => {
         try {
             setSubmitting(true);
             const token = localStorage.getItem('adminToken');
-            
+
             const data = new FormData();
             data.append('name', formData.name);
             data.append('category', activeTab);
-            
+
             if (activeTab === 'trending_route') {
                 data.append('startingPrice', formData.startingPrice);
                 data.append('pickup', formData.pickup);
@@ -84,13 +84,13 @@ const PromotedRoutes = () => {
                 data.append('image', previewUrl);
             }
 
-            const url = editingId 
+            const url = editingId
                 ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/promoted-routes/${editingId}`
                 : `${import.meta.env.VITE_API_BASE_URL}/api/admin/promoted-routes`;
             const method = editingId ? 'put' : 'post';
 
             const res = await axios[method](url, data, {
-                headers: { 
+                headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
                 }
@@ -102,12 +102,12 @@ const PromotedRoutes = () => {
                 } else {
                     setRoutes([res.data.data, ...routes]);
                 }
-                
+
                 setIsModalOpen(false);
                 setEditingId(null);
-                setFormData({ 
+                setFormData({
                     name: '', startingPrice: '',
-                    pickup: '', destination: '', subtitle: '', tag: '', 
+                    pickup: '', destination: '', subtitle: '', tag: '',
                     discount: ''
                 });
                 setImageFile(null);
@@ -161,21 +161,19 @@ const PromotedRoutes = () => {
                 <div className="flex gap-2 p-1 bg-white/5 border border-white/10 rounded-2xl">
                     <button
                         onClick={() => setActiveTab('trending_route')}
-                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                            activeTab === 'trending_route' 
-                                ? 'bg-emerald-500 text-white shadow-lg' 
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'trending_route'
+                                ? 'bg-emerald-500 text-white shadow-lg'
                                 : 'text-white/40 hover:text-white hover:bg-white/5'
-                        }`}
+                            }`}
                     >
                         Trending Routes
                     </button>
                     <button
                         onClick={() => setActiveTab('trending_now')}
-                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                            activeTab === 'trending_now' 
-                                ? 'bg-emerald-500 text-white shadow-lg' 
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'trending_now'
+                                ? 'bg-emerald-500 text-white shadow-lg'
                                 : 'text-white/40 hover:text-white hover:bg-white/5'
-                        }`}
+                            }`}
                     >
                         Trending Now (Images)
                     </button>
@@ -183,9 +181,9 @@ const PromotedRoutes = () => {
                 <button
                     onClick={() => {
                         setEditingId(null);
-                        setFormData({ 
+                        setFormData({
                             name: '', startingPrice: '',
-                            pickup: '', destination: '', subtitle: '', tag: '', 
+                            pickup: '', destination: '', subtitle: '', tag: '',
                             discount: ''
                         });
                         setPreviewUrl(null);
@@ -280,13 +278,13 @@ const PromotedRoutes = () => {
                                         </>
                                     )}
                                     <td className="px-8 py-5 text-right space-x-2 whitespace-nowrap">
-                                        <button 
+                                        <button
                                             onClick={() => handleEditClick(route)}
                                             className="p-2 text-white/20 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-xl transition-all"
                                         >
                                             <Edit2 size={18} />
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => handleDelete(route._id)}
                                             className="p-2 text-white/20 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
                                         >
@@ -303,12 +301,12 @@ const PromotedRoutes = () => {
             {/* Add Route Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#0f172a]/80 backdrop-blur-sm overflow-y-auto">
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         className="glass-card w-full max-w-2xl rounded-[40px] p-8 border border-white/10 shadow-2xl relative my-8"
                     >
-                        <button 
+                        <button
                             onClick={() => {
                                 setIsModalOpen(false);
                                 setPreviewUrl(null);
@@ -336,11 +334,11 @@ const PromotedRoutes = () => {
                                             placeholder={activeTab === 'trending_now' ? "e.g. Summer Promo Image" : "e.g. Hyderabad to Warangal"}
                                             className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
                                             value={formData.name}
-                                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         />
                                     </div>
                                 </div>
-                                
+
                                 {activeTab === 'trending_route' && (
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Subtitle</label>
@@ -351,7 +349,7 @@ const PromotedRoutes = () => {
                                                 placeholder="e.g. Heritage & Food Trail"
                                                 className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
                                                 value={formData.subtitle}
-                                                onChange={(e) => setFormData({...formData, subtitle: e.target.value})}
+                                                onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
                                             />
                                         </div>
                                     </div>
@@ -371,7 +369,7 @@ const PromotedRoutes = () => {
                                                     placeholder="e.g. Hyderabad"
                                                     className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
                                                     value={formData.pickup}
-                                                    onChange={(e) => setFormData({...formData, pickup: e.target.value})}
+                                                    onChange={(e) => setFormData({ ...formData, pickup: e.target.value })}
                                                 />
                                             </div>
                                         </div>
@@ -386,7 +384,7 @@ const PromotedRoutes = () => {
                                                     placeholder="e.g. Warangal"
                                                     className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
                                                     value={formData.destination}
-                                                    onChange={(e) => setFormData({...formData, destination: e.target.value})}
+                                                    onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
                                                 />
                                             </div>
                                         </div>
@@ -402,7 +400,7 @@ const PromotedRoutes = () => {
                                                     placeholder="299"
                                                     className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
                                                     value={formData.startingPrice}
-                                                    onChange={(e) => setFormData({...formData, startingPrice: e.target.value})}
+                                                    onChange={(e) => setFormData({ ...formData, startingPrice: e.target.value })}
                                                 />
                                             </div>
                                         </div>
@@ -416,11 +414,11 @@ const PromotedRoutes = () => {
                                                     placeholder="e.g. Save up to 20%"
                                                     className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
                                                     value={formData.discount}
-                                                    onChange={(e) => setFormData({...formData, discount: e.target.value})}
+                                                    onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
                                                 />
                                             </div>
                                         </div>
-                                        
+
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-4">Badge Tag</label>
                                             <div className="relative group">
@@ -430,7 +428,7 @@ const PromotedRoutes = () => {
                                                     placeholder="e.g. 🔥 Weekend Favorite"
                                                     className="w-full bg-white/5 border border-white/10 rounded-[20px] pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all font-bold"
                                                     value={formData.tag}
-                                                    onChange={(e) => setFormData({...formData, tag: e.target.value})}
+                                                    onChange={(e) => setFormData({ ...formData, tag: e.target.value })}
                                                 />
                                             </div>
                                         </div>
@@ -443,7 +441,7 @@ const PromotedRoutes = () => {
                                     {previewUrl ? (
                                         <div className="relative w-full h-40 rounded-[24px] overflow-hidden border border-white/10 group">
                                             <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                                            <button 
+                                            <button
                                                 type="button"
                                                 onClick={() => {
                                                     setPreviewUrl(null);

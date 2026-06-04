@@ -63,7 +63,7 @@ const DriverManagement = ({ view = 'directory' }) => {
     const [onboardingList, setOnboardingList] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
-    // const [isLoading, setIsLoading] = useState(true); // Removed as unused
+    const [filterVehicleType, setFilterVehicleType] = useState('all');
 
     // Modals & Selection State
     const [isAddDriverModalOpen, setIsAddDriverModalOpen] = useState(false);
@@ -72,6 +72,8 @@ const DriverManagement = ({ view = 'directory' }) => {
     const [selectedDriver, setSelectedDriver] = useState(null);
     const [driverRides, setDriverRides] = useState([]);
     const [viewingImage, setViewingImage] = useState(null);
+    const [selectedDriverDocs, setSelectedDriverDocs] = useState({});
+    const [isLoadingDocs, setIsLoadingDocs] = useState(false);
 
     // Fetch Drivers
     React.useEffect(() => {
@@ -145,11 +147,41 @@ const DriverManagement = ({ view = 'directory' }) => {
         }
     };
 
+    const fetchDriverDocuments = async (driverId) => {
+        setIsLoadingDocs(true);
+        try {
+            const token = localStorage.getItem('adminToken');
+            const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/admin/drivers/${driverId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.data.success) {
+                const rawDocs = res.data.data?.driverDetails?.documents || {};
+                const mappedDocs = Object.fromEntries(
+                    Object.entries(rawDocs).map(([k, v]) => {
+                        if (!v) return [k, v];
+                        if (v.startsWith('http')) return [k, v];
+                        const baseUrl = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
+                        const filePath = v.startsWith('/') ? v : `/${v}`;
+                        return [k, `${baseUrl}${filePath}`];
+                    })
+                );
+                setSelectedDriverDocs(mappedDocs);
+            }
+        } catch (error) {
+            console.error("Failed to fetch driver documents", error);
+            setSelectedDriverDocs({});
+        } finally {
+            setIsLoadingDocs(false);
+        }
+    };
+
     React.useEffect(() => {
         if (selectedDriver) {
             fetchDriverRides(selectedDriver.id);
+            fetchDriverDocuments(selectedDriver.id);
         } else {
             setDriverRides([]);
+            setSelectedDriverDocs({});
         }
     }, [selectedDriver]);
 
@@ -158,7 +190,8 @@ const DriverManagement = ({ view = 'directory' }) => {
         const query = searchQuery.toLowerCase();
         const matchesSearch = (d.name || '').toLowerCase().includes(query) || (d.phone || '').includes(searchQuery);
         const matchesStatus = filterStatus === 'all' || d.status === filterStatus;
-        return matchesSearch && matchesStatus;
+        const matchesVehicleType = filterVehicleType === 'all' || (d.vehicleType || '').toUpperCase() === filterVehicleType.toUpperCase();
+        return matchesSearch && matchesStatus && matchesVehicleType;
     });
 
     // --- Actions ---
@@ -192,8 +225,8 @@ const DriverManagement = ({ view = 'directory' }) => {
 
         try {
             const token = localStorage.getItem('adminToken');
-            const res = await axios.put(`${import.meta.env.VITE_API_BASE_URL}/api/admin/drivers/${id}/verify`, 
-                { action: 'reject', rejectionReason: reason }, 
+            const res = await axios.put(`${import.meta.env.VITE_API_BASE_URL}/api/admin/drivers/${id}/verify`,
+                { action: 'reject', rejectionReason: reason },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
@@ -309,11 +342,19 @@ const DriverManagement = ({ view = 'directory' }) => {
                 </div>
 
                 {/* Documents Section */}
-                {d.documents && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                        <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2"><FileText size={18} className="text-blue-500" /> Verified Documents</h3>
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2"><FileText size={18} className="text-blue-500" /> Verified Documents</h3>
+                    {isLoadingDocs ? (
+                        <div className="text-center py-8 text-slate-500">
+                            Loading documents...
+                        </div>
+                    ) : Object.keys(selectedDriverDocs).length === 0 ? (
+                        <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-slate-500 text-sm">
+                            No documents uploaded yet.
+                        </div>
+                    ) : (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            {Object.entries(d.documents).map(([key, url]) => (
+                            {Object.entries(selectedDriverDocs).map(([key, url]) => (
                                 <div key={key} className="group cursor-pointer" onClick={() => setViewingImage({ url, title: key.replace(/([A-Z])/g, ' $1').trim() })}>
                                     <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden border border-slate-200 mb-2 relative">
                                         <img src={url} alt={key} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
@@ -325,8 +366,8 @@ const DriverManagement = ({ view = 'directory' }) => {
                                 </div>
                             ))}
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
 
                 {/* Ride History */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -431,7 +472,7 @@ const DriverManagement = ({ view = 'directory' }) => {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3 items-center">
                     <select
                         className="bg-white text-slate-800 border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                         value={filterStatus}
@@ -440,6 +481,17 @@ const DriverManagement = ({ view = 'directory' }) => {
                         <option value="all" className="text-slate-800 bg-white">All Status</option>
                         <option value="active" className="text-slate-800 bg-white">Active</option>
                         <option value="blocked" className="text-slate-800 bg-white">Blocked</option>
+                    </select>
+                    <select
+                        className="bg-white text-slate-800 border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        value={filterVehicleType}
+                        onChange={(e) => setFilterVehicleType(e.target.value)}
+                    >
+                        <option value="all" className="text-slate-800 bg-white">All Vehicles</option>
+                        <option value="CAR" className="text-slate-800 bg-white">Car</option>
+                        <option value="AUTO" className="text-slate-800 bg-white">Auto</option>
+                        <option value="BIKE" className="text-slate-800 bg-white">Bike</option>
+                        <option value="TRAVELER" className="text-slate-800 bg-white">Traveler</option>
                     </select>
                     {/* <button
                         onClick={() => setIsAddDriverModalOpen(true)}
@@ -582,7 +634,7 @@ const DriverManagement = ({ view = 'directory' }) => {
                         )}
                     </div>
                     <button
-                        onClick={() => { setSelectedApplicant(applicant); setIsDocModalOpen(true); }}
+                        onClick={() => { setSelectedApplicant(applicant); fetchDriverDocuments(applicant.id); setIsDocModalOpen(true); }}
                         className="mt-auto w-full py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                     >
                         <Eye size={18} /> Review Documents
@@ -726,7 +778,7 @@ const DriverManagement = ({ view = 'directory' }) => {
             </Modal>
 
             {/* Document Verification Modal */}
-            <Modal isOpen={isDocModalOpen && selectedApplicant} onClose={() => setIsDocModalOpen(false)} title="Document Verification">
+            <Modal isOpen={isDocModalOpen && selectedApplicant} onClose={() => { setIsDocModalOpen(false); setSelectedDriverDocs({}); }} title="Document Verification">
                 {selectedApplicant && (
                     <div className="space-y-6">
                         {/* Applicant Header */}
@@ -780,31 +832,34 @@ const DriverManagement = ({ view = 'directory' }) => {
                                     </>
                                 )}
                             </div>
-                        </div>
-
-                        <div>
-                            <h5 className="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wide">Uploaded Documents</h5>
-                            {Object.keys(selectedApplicant.documents).length === 0 ? (
-                                <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-slate-500 text-sm">
-                                    No documents uploaded yet.
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {Object.entries(selectedApplicant.documents).map(([key, url]) => (
-                                        <div key={key} className="border border-slate-200 rounded-xl p-3 hover:border-blue-300 transition-colors cursor-pointer group bg-white shadow-sm" onClick={() => setViewingImage({ url, title: key.replace(/([A-Z])/g, ' $1').trim() })}>
-                                            <div className="mb-2 flex justify-between items-center">
-                                                <span className="text-sm font-medium text-slate-700 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                                                <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity hover:underline flex items-center gap-1">
-                                                    <Eye size={12} /> View Full
-                                                </span>
+                            <div>
+                                <h5 className="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wide">Uploaded Documents</h5>
+                                {isLoadingDocs ? (
+                                    <div className="text-center py-8 text-slate-500">
+                                        Loading documents...
+                                    </div>
+                                ) : Object.keys(selectedDriverDocs).length === 0 ? (
+                                    <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-slate-500 text-sm">
+                                        No documents uploaded yet.
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {Object.entries(selectedDriverDocs).map(([key, url]) => (
+                                            <div key={key} className="border border-slate-200 rounded-xl p-3 hover:border-blue-300 transition-colors cursor-pointer group bg-white shadow-sm" onClick={() => setViewingImage({ url, title: key.replace(/([A-Z])/g, ' $1').trim() })}>
+                                                <div className="mb-2 flex justify-between items-center">
+                                                    <span className="text-sm font-medium text-slate-700 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                                    <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity hover:underline flex items-center gap-1">
+                                                        <Eye size={12} /> View Full
+                                                    </span>
+                                                </div>
+                                                <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden border border-slate-100 relative group-hover:shadow-md transition-shadow">
+                                                    <img src={url} alt={key} className="w-full h-full object-cover" />
+                                                </div>
                                             </div>
-                                            <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden border border-slate-100 relative group-hover:shadow-md transition-shadow">
-                                                <img src={url} alt={key} className="w-full h-full object-cover" />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="flex gap-3 pt-4 border-t border-slate-200 sticky bottom-0 bg-white p-2">

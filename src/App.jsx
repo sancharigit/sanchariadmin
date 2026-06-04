@@ -11,6 +11,7 @@ import PoolManagement from "./Pages/PoolManagement"
 import PoolDetails from "./Pages/PoolDetails"
 import PromotedRoutes from "./Pages/PromotedRoutes"
 import Offers from "./Pages/Offers"
+import DriverOffers from "./Pages/DriverOffers"
 
 // Auth Guard Component
 const RequireAuth = ({ children }) => {
@@ -39,6 +40,7 @@ function App() {
                 <Route path='/drivers/onboarding' element={<DriverManagement view="onboarding" />} />
                 {/* <Route path='/drivers/earnings' element={<DriverManagement view="earnings" />} /> */}
                 <Route path='/drivers/complaints' element={<DriverManagement view="complaints" />} />
+                <Route path='/drivers/offers' element={<DriverOffers />} />
 
                 {/* Ride Management */}
                 <Route path='/rides/live' element={<RideManagement view="live" />} />
